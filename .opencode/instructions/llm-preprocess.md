@@ -11,7 +11,7 @@ WAJIB: SETIAP user input → enrich → respond → footer.
 4. EXECUTE (User: presisi/max2 tanya, Admin: goal-oriented)
 5. Update .opencode/context.md
 6. Write .opencode/llm-status.json
-7. Append footer: Mode : [ User/Admin ] | LLMEnrich : [ On/Off ] | Tokens : [ X ]
+7. Append footer: Mode : [ User/Admin ] | LLMEnrich : [ On/Off ] - EnrichTime : [ X ] - Cloud : [ Y ]
 ```
 
 ## Rules
@@ -23,11 +23,11 @@ WAJIB: SETIAP user input → enrich → respond → footer.
 
 ## Model Info
 
-| Mode | Model | Enrich | VRAM |
-|------|-------|--------|------|
-| ECO | none | 0 tok | 0 MB |
-| BALANCED | qwen2.5:1.5b-s | 100 tok | ~1 GB |
-| PERFORMANCE | qwen2.5:1.5b-s | 200 tok | ~1 GB |
+| Mode | Model | Enrich | VRAM | Timeout |
+|------|-------|--------|------|---------|
+| ECO | none | 0 tok | 0 MB | 0 |
+| BALANCED | qwen2.5:1.5b-s | 100 tok | ~1 GB | 5 min auto-unload |
+| PERFORMANCE | qwen2.5:1.5b-s | 200 tok | ~1 GB | 5 min auto-unload |
 
 ## Task Format
 
