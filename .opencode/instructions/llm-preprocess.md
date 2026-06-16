@@ -5,67 +5,55 @@ You MUST preprocess EVERY user input through local Ollama before responding.
 ## WAJIB — Step-by-step tiap user input
 
 ```
-1. BACA .opencode/llm-mode.json  →  tau mode (eco/balanced/performance)
-2. KALO mode != eco:
+1. BACA .opencode/context.md  →  tau state terkini
+2. BACA .opencode/llm-mode.json  →  konfirmasi mode
+3. KALO mode != eco:
    a. JALANKAN Invoke-LLMEnrich("<user_input>", "universal preprocess")
    b. KALO enriched != input → $enrichSuccess = $true
    c. SIMPAN enriched context (internal, user ga lihat)
-3. KALO mode == eco:
+4. KALO mode == eco:
    a. $enrichSuccess = $false
    b. PAKAI raw input langsung (no LLM)
-4. JAWAB user pake enriched/raw context
-5. TULIS .opencode/llm-status.json  (enrich On/Off, token count, mode, profile, model)
-6. APPEND footer: LLM : [ MODE ] - LLMEnrich [ On/Off ] - Tokens : [ X ] - Profile : [ Y ] - Model : [ Z ]
+5. JAWAB user pake enriched/raw context
+6. UPDATE .opencode/context.md (aktivitas, file berubah, enriched stats)
+7. TULIS .opencode/llm-status.json (enrich On/Off, token count, mode, profile, model)
+8. APPEND footer: LLM : [MODE] - LLMEnrich [On/Off] - Tokens : [X] - Profile : [Y] - Model : [Z]
 ```
 
 INI WAJIB. SETIAP USER INPUT. TANPA EXCEPTION.
 LLMEnrich [Off] di footer = AI GAGAL COMPLY. User akan lihat.
 
-## Architecture
+## Session Lifecycle
 
-Local Ollama = preprocessor (enrichment only).
-Cloud AI (opencode model) = actual responder.
+| Event | Action |
+|-------|--------|
+| **User input** | Preprocess → enrich → respond → update context → footer |
+| **Task selesai** | JALANKAN `scripts/session-summary.ps1` — generate ringkasan |
+| **Before commit** | JALANKAN `scripts/hooks/check-enrich.ps1` — verify compliance |
+| **Mode switch** | Update `active-instructions.md` — relevan dengan mode baru |
+| **File index** | `scripts/file-index.ps1 -Update` — cache content hash |
 
-User never sees local LLM output. Local LLM produces internal enriched context that cloud AI uses for better answers.
-
-## Pipeline
-
-```
-User Input
-   │
-   ▼
-Invoke-LLMEnrich()  ← local Ollama (GPU)
-   ├─ ECO:        pass-through, no enrichment
-   ├─ BALANCED:   qwen3:1.7b-s, enrich ~250 tokens
-   └─ PERFORMANCE: qwen2.5-coder:3b-s, enrich ~512 tokens
-   │
-   ▼
-Enriched Context → internal, fed to cloud AI
-   │
-   ▼
-Cloud AI responds using enriched context + footer
-```
-
-## Execution
-
-Run this PowerShell on every user input:
+## Self-Check (WAJIB sebelum commit atau sesi berakhir)
 
 ```powershell
-$enrichSuccess = $false
-$mode = (Get-Content ".opencode/llm-mode.json" -Raw | ConvertFrom-Json).mode
-if ($mode -ne "eco") {
-  . .\scripts\llm-adapter.ps1
-  $enriched = Invoke-LLMEnrich -Text "<USER_INPUT>" -Context "universal preprocess"
-  if ($enriched -and $enriched -ne "<USER_INPUT>") { $enrichSuccess = $true }
-  # $enriched digunakan sebagai context internal
-}
+.\scripts\hooks\check-enrich.ps1 -Input "$last_user_input"
 ```
 
-## Rules
+Jika hasilnya enrichment_success = false padahal mode PERFORMANCE,
+maka enrihment mungkin tidak berjalan. Perbaiki sebelum commit.
 
-1. ALWAYS call Invoke-LLMEnrich before ANY response logic
-2. ECO mode: skip entirely, use raw input, $enrichSuccess = $false
-3. BALANCED: 100 token enrichment via qwen2.5:1.5b-s
-4. PERFORMANCE: 200 token enrichment via qwen2.5:1.5b-s
-5. Enriched context is internal — user sees normal response
-6. Footer: `LLM : [ MODE ] - LLMEnrich [ On/Off ] - Tokens : [ X ] - Profile : [ Y ] - Model : [ Z ]`
+## Task Format
+
+Gunakan format dengan file references di Todowrite:
+```
+- [ ] Fix bug → scripts/sync.ps1:12
+- [ ] Create test → tests/*.ps1
+```
+
+## Model Info
+
+| Mode | Model | Enrich | VRAM |
+|------|-------|--------|------|
+| ECO | none | 0 tok | 0 MB |
+| BALANCED | qwen2.5:1.5b-s | 100 tok | ~1075 MB |
+| PERFORMANCE | qwen2.5:1.5b-s | 200 tok | ~1915 MB |
