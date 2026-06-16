@@ -8,15 +8,18 @@ You MUST preprocess EVERY user input through local Ollama before responding.
 1. BACA .opencode/llm-mode.json  →  tau mode (eco/balanced/performance)
 2. KALO mode != eco:
    a. JALANKAN Invoke-LLMEnrich("<user_input>", "universal preprocess")
-   b. SIMPAN enriched context (internal, user ga lihat)
+   b. KALO enriched != input → $enrichSuccess = $true
+   c. SIMPAN enriched context (internal, user ga lihat)
 3. KALO mode == eco:
-   a. PAKAI raw input langsung (no LLM)
+   a. $enrichSuccess = $false
+   b. PAKAI raw input langsung (no LLM)
 4. JAWAB user pake enriched/raw context
-5. TULIS .opencode/llm-status.json  (token count, mode, profile, model)
-6. APPEND footer: LLM : [ MODE ] - Tokens : [ X ] - Profile : [ Y ] - Model : [ Z ]
+5. TULIS .opencode/llm-status.json  (enrich On/Off, token count, mode, profile, model)
+6. APPEND footer: LLM : [ MODE ] - LLMEnrich [ On/Off ] - Tokens : [ X ] - Profile : [ Y ] - Model : [ Z ]
 ```
 
 INI WAJIB. SETIAP USER INPUT. TANPA EXCEPTION.
+LLMEnrich [Off] di footer = AI GAGAL COMPLY. User akan lihat.
 
 ## Architecture
 
@@ -48,19 +51,21 @@ Cloud AI responds using enriched context + footer
 Run this PowerShell on every user input:
 
 ```powershell
+$enrichSuccess = $false
 $mode = (Get-Content ".opencode/llm-mode.json" -Raw | ConvertFrom-Json).mode
 if ($mode -ne "eco") {
   . .\scripts\llm-adapter.ps1
   $enriched = Invoke-LLMEnrich -Text "<USER_INPUT>" -Context "universal preprocess"
-  # Use $enriched as context for response
+  if ($enriched -and $enriched -ne "<USER_INPUT>") { $enrichSuccess = $true }
+  # $enriched digunakan sebagai context internal
 }
 ```
 
 ## Rules
 
 1. ALWAYS call Invoke-LLMEnrich before ANY response logic
-2. ECO mode: skip entirely, use raw input
-3. BALANCED: 250 token enrichment
-4. PERFORMANCE: 512 token enrichment
+2. ECO mode: skip entirely, use raw input, $enrichSuccess = $false
+3. BALANCED: 100 token enrichment via qwen2.5:1.5b-s
+4. PERFORMANCE: 200 token enrichment via qwen2.5:1.5b-s
 5. Enriched context is internal — user sees normal response
-6. Append LLM Status Footer after EVERY response
+6. Footer: `LLM : [ MODE ] - LLMEnrich [ On/Off ] - Tokens : [ X ] - Profile : [ Y ] - Model : [ Z ]`
