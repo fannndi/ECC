@@ -1,59 +1,37 @@
-# LLM Preprocess — Universal Input Enrichment
+# Input Processing — PERFECT COMPLIANCE
 
-You MUST preprocess EVERY user input through local Ollama before responding.
+WAJIB: SETIAP user input → enrich → respond → footer.
 
-## WAJIB — Step-by-step tiap user input
+## Pipeline
 
 ```
-1. BACA .opencode/context.md  →  tau state terkini
-2. BACA .opencode/llm-mode.json  →  konfirmasi mode
-3. KALO mode != eco:
-   a. JALANKAN Invoke-LLMEnrich("<user_input>", "universal preprocess")
-   b. KALO enriched != input → $enrichSuccess = $true
-   c. SIMPAN enriched context (internal, user ga lihat)
-4. KALO mode == eco:
-   a. $enrichSuccess = $false
-   b. PAKAI raw input langsung (no LLM)
-5. JAWAB user pake enriched/raw context
-6. UPDATE .opencode/context.md (aktivitas, file berubah, enriched stats)
-7. TULIS .opencode/llm-status.json (enrich On/Off, token count, mode, profile, model)
-8. APPEND footer: LLM : [MODE] - LLMEnrich [On/Off] - Tokens : [X] - Profile : [Y] - Model : [Z]
+1. Read .opencode/llm-mode.json
+2. IF mode != eco → Invoke-LLMEnrich() → GPU spike >0%
+3. IF mode == eco → skip enrichment
+4. EXECUTE (User: presisi/max2 tanya, Admin: goal-oriented)
+5. Update .opencode/context.md
+6. Write .opencode/llm-status.json
+7. Append footer: Mode : [ User/Admin ] | LLMEnrich : [ On/Off ] | Tokens : [ X ]
 ```
 
-INI WAJIB. SETIAP USER INPUT. TANPA EXCEPTION.
-LLMEnrich [Off] di footer = AI GAGAL COMPLY. User akan lihat.
+## Rules
 
-## Session Lifecycle
-
-| Event | Action |
-|-------|--------|
-| **User input** | Preprocess → enrich → respond → update context → footer |
-| **Task selesai** | JALANKAN `scripts/session-summary.ps1` — generate ringkasan |
-| **Before commit** | JALANKAN `scripts/hooks/check-enrich.ps1` — verify compliance |
-| **Mode switch** | Update `active-instructions.md` — relevan dengan mode baru |
-| **File index** | `scripts/file-index.ps1 -Update` — cache content hash |
-
-## Self-Check (WAJIB sebelum commit atau sesi berakhir)
-
-```powershell
-.\scripts\hooks\check-enrich.ps1 -Input "$last_user_input"
-```
-
-Jika hasilnya enrichment_success = false padahal mode PERFORMANCE,
-maka enrihment mungkin tidak berjalan. Perbaiki sebelum commit.
-
-## Task Format
-
-Gunakan format dengan file references di Todowrite:
-```
-- [ ] Fix bug → scripts/sync.ps1:12
-- [ ] Create test → tests/*.ps1
-```
+1. Invoke-LLMEnrich WAJIB sebelum jawab — tidak ada alasan skip
+2. Footer WAJIB di setiap respons — compliance hook, bukan dekorasi
+3. LLMEnrich [Off] = AI gagal comply — user langsung lihat
+4. Session lifecycle: enrich → respond → update context → footer → summary (akhir task)
 
 ## Model Info
 
 | Mode | Model | Enrich | VRAM |
 |------|-------|--------|------|
 | ECO | none | 0 tok | 0 MB |
-| BALANCED | qwen2.5:1.5b-s | 100 tok | ~1075 MB |
-| PERFORMANCE | qwen2.5:1.5b-s | 200 tok | ~1915 MB |
+| BALANCED | qwen2.5:1.5b-s | 100 tok | ~1 GB |
+| PERFORMANCE | qwen2.5:1.5b-s | 200 tok | ~1 GB |
+
+## Task Format
+
+```
+- [ ] Fix bug → scripts/sync.ps1:12
+- [ ] Create test → tests/*.ps1
+```
