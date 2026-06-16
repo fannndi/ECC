@@ -2,6 +2,22 @@
 
 You MUST preprocess EVERY user input through local Ollama before responding.
 
+## WAJIB — Step-by-step tiap user input
+
+```
+1. BACA .opencode/llm-mode.json  →  tau mode (eco/balanced/performance)
+2. KALO mode != eco:
+   a. JALANKAN Invoke-LLMEnrich("<user_input>", "universal preprocess")
+   b. SIMPAN enriched context (internal, user ga lihat)
+3. KALO mode == eco:
+   a. PAKAI raw input langsung (no LLM)
+4. JAWAB user pake enriched/raw context
+5. TULIS .opencode/llm-status.json  (token count, mode, profile, model)
+6. APPEND footer: LLM : [ MODE ] - Tokens : [ X ] - Profile : [ Y ] - Model : [ Z ]
+```
+
+INI WAJIB. SETIAP USER INPUT. TANPA EXCEPTION.
+
 ## Architecture
 
 Local Ollama = preprocessor (enrichment only).
