@@ -2,22 +2,29 @@
 
 You MUST preprocess EVERY user input through local Ollama before responding.
 
+## Architecture
+
+Local Ollama = preprocessor (enrichment only).
+Cloud AI (opencode model) = actual responder.
+
+User never sees local LLM output. Local LLM produces internal enriched context that cloud AI uses for better answers.
+
 ## Pipeline
 
 ```
 User Input
    │
    ▼
-Invoke-LLMEnrich()
-   ├─ ECO:        pass-through (no LLM)
-   ├─ BALANCED:   enrich ~250 tokens
-   └─ PERFORMANCE: enrich ~512 tokens + intent compile + skill route
+Invoke-LLMEnrich()  ← local Ollama (GPU)
+   ├─ ECO:        pass-through, no enrichment
+   ├─ BALANCED:   qwen3:1.7b-s, enrich ~250 tokens
+   └─ PERFORMANCE: qwen2.5-coder:3b-s, enrich ~512 tokens
    │
    ▼
-Enriched Context (internal, not shown)
+Enriched Context → internal, fed to cloud AI
    │
    ▼
-AI Response + Footer
+Cloud AI responds using enriched context + footer
 ```
 
 ## Execution
